@@ -1,12 +1,13 @@
 <template>
   <div>
     <el-card>
-      <el-tag type="success"> <h1>测试webSocket</h1></el-tag>
+      <el-tag type="success"> <h1>测试WebSocket 消息弹框的接收和发送</h1></el-tag>
       <br>
       <br>
-      <el-button type="success" @click="sendMessage">发送消息</el-button>
-      <el-button type="warning" @click="receiveMessage">接收推送消息</el-button>
-
+      <el-button type="success" @click="sendMessage(1)">单发消息</el-button>
+      <el-button type="success" @click="sendMessage(2)">群发消息</el-button>
+      <el-button type="success" @click="sendMessage(3)">对象消息</el-button>
+      <el-button type="warning" @click="receiveMessage">查看测试请求接口[F12-查看]</el-button>
     </el-card>
     <el-dialog title="发送服务消息" :visible.sync="dialogFormVisible" width="40%" center>
       <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm">
@@ -26,14 +27,13 @@
 </template>
 <script>
 
-  import {socketSendMessage} from '@/api/message/message/message'
-
   export default {
     components: {
 
     },
     data () {
       return {
+        sendType: 1,
         dialogFormVisible: false,
         formLabelWidth: '100px',
         ruleForm: {
@@ -55,7 +55,7 @@
     mounted () {
       // WebSocket 页面创建生命周期函数
       if ('WebSocket' in window) {
-        this.websocket = new WebSocket('ws://api.live.xingfu999.com/websocket/' + this.ruleForm.userId)
+        this.websocket = new WebSocket('ws://localhost:8807/websocket/' + this.ruleForm.userId)
         this.initWebSocket()
       } else {
         alert('当前浏览器 Not support websocket')
@@ -65,7 +65,8 @@
       this.onbeforeunload()
     },
     methods: {
-      sendMessage () {
+      sendMessage (val) {
+        this.sendType = val
         this.dialogFormVisible = true
       },
       /**
@@ -75,35 +76,56 @@
       submitForm (formName) {
         this.$refs[formName].validate(valid => {
           if (valid) {
-            socketSendMessage(this.ruleForm).then(data => {
-              this.dialogFormVisible = false
-              if (data.code === 200) {
-                this.$message({
-                  type: 'success',
-                  message: '发送成功!'+data.message
-                })
-                this.resetForm(formName)
-              } else {
-                this.$message({
-                  type: 'error',
-                  message: data.message
-                })
-                this.resetForm(formName)
-              }
-            }).catch(data => {
-              this.dialogFormVisible = false
-            })
+            if (this.sendType == 1){
+              this.dialogFormVisible = true
+              this.$http({
+                url: this.$http.adornUrl('/sys/websocket/sendMessageByUserId'),
+                method: 'post',
+                params: this.$http.adornParams(this.ruleForm)
+              }).then(({data}) => {
+                if (data && data.code === 0) {
+
+                } else {
+                }
+                this.dialogFormVisible = false
+              })
+            }else if (this.sendType == 2){
+              this.dialogFormVisible = true
+              this.$http({
+                url: this.$http.adornUrl('/sys/websocket/sendMessageAll'),
+                method: 'post',
+                params: this.$http.adornParams(this.ruleForm)
+              }).then(({data}) => {
+                if (data && data.code === 0) {
+
+                } else {
+                }
+                this.dialogFormVisible = false
+              })
+            }else if (this.sendType == 3){
+              this.dialogFormVisible = true
+              this.$http({
+                url: this.$http.adornUrl('/sys/websocket/sendMessageObject'),
+                method: 'get',
+                params: this.$http.adornParams(this.ruleForm)
+              }).then(({data}) => {
+                if (data && data.code === 0) {
+
+                } else {
+                }
+                this.dialogFormVisible = false
+              })
+            }
           }
         })
       },
-      resetForm (formName) {
-        this.$refs[formName].resetFields()
-      },
       receiveMessage() {
-        //http://xf-admin.zhxf.ltd/apiAdmin/socket/sendOneWebSocket/123456
-        //http://xf-admin.zhxf.ltd/apiAdmin/socket/sendAllWebSocket
-        console.log("http://api.live.xingfu999.com/socket/sendAllWebSocket")
-        console.log("http://api.live.xingfu999.com/socket/sendOneWebSocket/123456")
+        console.log("-群发消息-")
+        console.log("http://xf-admin.zhxf.ltd/apiAdmin/socket/sendAllWebSocket")
+        console.log("-单发消息-")
+        console.log("http://xf-admin.zhxf.ltd/apiAdmin/socket/sendOneWebSocket/123456")
+        console.log("-对象消息-")
+        console.log("http://xf-admin.zhxf.ltd/apiAdmin/socket/sendMessageObject?userId=123456")
       },
       //WebSocket-初始化Websocket
       initWebSocket () {
@@ -142,7 +164,7 @@
         })
         //消息点击事件
         message.$el.querySelector('span').onclick = () => {
-          this.$router.push('/message/socket')
+          this.$router.push('/home')
         }
       },
 
